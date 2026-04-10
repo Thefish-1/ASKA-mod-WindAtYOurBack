@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using BepInEx;
+using BepInEx.Configuration; // Required for Config
 using BepInEx.Unity.IL2CPP;
 using Il2CppInterop.Runtime.Injection;
 using UnityEngine;
@@ -8,18 +9,24 @@ using UnityEngine.SceneManagement;
 
 namespace WindAtYourBack
 {
-    [BepInPlugin("windatyourback", "WindAtYourBack", "1.5.1")]
+    [BepInPlugin("windatyourback", "WindAtYourBack", "1.7.0")]
     public class WindAtYourBackPlugin : BasePlugin
     {
+        // Static reference to access the config from the component
+        public static ConfigEntry<float> MaxBoatSpeedConfig;
+
         public override void Load()
         {
-            // Register the component for IL2CPP compatibility
+            // Bind the config setting: Category "General", Key "MaxBoatSpeed", Default 15.0f
+            MaxBoatSpeedConfig = Config.Bind("General", "MaxBoatSpeed", 15.0f, "Sets the maximum speed for the boat. Game default is 15.0.");
+
             ClassInjector.RegisterTypeInIl2Cpp<WindUpdaterComponent>();
 
-            // Create a persistent object to run the mod logic
             var windObj = new GameObject("WindAtYourBack_Controller");
             UnityEngine.Object.DontDestroyOnLoad(windObj);
             windObj.AddComponent<WindUpdaterComponent>();
+            
+            Log.LogInfo("WindAtYourBack: Loaded with Config support!");
         }
     }
 
@@ -32,10 +39,8 @@ namespace WindAtYourBack
 
         private void FixedUpdate()
         {
-            // Optimization: Do nothing if we are in the Main Menu (index 0)
             if (SceneManager.GetActiveScene().buildIndex == 0) return;
 
-            // If motor reference is missing, search for it every 2 seconds
             if (_motor == null)
             {
                 if (Time.time < _nextSearch) return;
@@ -45,13 +50,17 @@ namespace WindAtYourBack
                 if (_motor == null) return;
             }
 
-            // Calculate direction: Use the boat's forward heading on a flat plane
+            // Apply wind direction and base strength
             Vector3 forward = _motor.transform.forward;
             forward.y = 0;
-
-            // Apply wind: Force direction to forward and strength to 100% (1.0)
             _motor._weatherWindDirection = forward.normalized;
             _motor._weatherWindValue = 1.0f;
+
+            // Apply Max Speed from Config
+            // This replaces the hardcoded speedBoost variable
+            float speedLimit = WindAtYourBackPlugin.MaxBoatSpeedConfig.Value;
+            _motor.maxTailSpeed = speedLimit;
+            _motor.maxTailSpeedLateral = speedLimit;
         }
     }
 }
