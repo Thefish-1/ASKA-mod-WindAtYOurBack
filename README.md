@@ -5,5 +5,3 @@ The mod injects a controller into the game scene that monitors for a BoatMotor c
 
 Creates a config-file that allows you to chage the maximum sail speed
 
-Note: ASKA has an internal speed cap for boats (approx. 15 knots). This mod will help you reach that cap regardless of the actual weather, but it will not exceed the game's physical limits.
-
